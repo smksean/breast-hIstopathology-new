@@ -1,0 +1,60 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+env/
+venv/
+ENV/
+env.bak/
+venv.bak/
+*.egg
+*.egg-info/
+dist/
+build/
+*.whl
+
+# Jupyter
+.ipynb_checkpoints
+*.ipynb
+Notebooks/
+
+# IDEs
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.project
+.pydevproject
+
+# OS
+.DS_Store
+Thumbs.db
+desktop.ini
+*.lnk
+
+# Logs
+*.log
+logs/
+
+# Environment variables
+.env
+.env.local
+
+# Model files (if too large for GitHub)
+# Uncomment if model > 100MB
+# models/*.pth
+
+# Test data (optional)
+# test data/
+
+# Temporary files
+*.tmp
+*.bak
+*.cache
+
+# Docker volumes
+docker-data/
+

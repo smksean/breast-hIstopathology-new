@@ -1,0 +1,772 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Breast Histopathology Classification</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+            color: #333;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        .header {
+            text-align: center;
+            color: white;
+            margin-bottom: 40px;
+            padding: 30px 20px;
+        }
+
+        .header h1 {
+            font-size: 2.5rem;
+            margin-bottom: 10px;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.2);
+        }
+
+        .header p {
+            font-size: 1.1rem;
+            opacity: 0.9;
+        }
+
+        .card {
+            background: white;
+            border-radius: 15px;
+            padding: 30px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.1);
+            margin-bottom: 20px;
+        }
+
+        .upload-area {
+            border: 3px dashed #667eea;
+            border-radius: 10px;
+            padding: 60px 20px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            background: #f8f9fa;
+        }
+
+        .upload-area:hover {
+            border-color: #764ba2;
+            background: #e9ecef;
+        }
+
+        .upload-area.dragover {
+            border-color: #28a745;
+            background: #d4edda;
+        }
+
+        .upload-icon {
+            font-size: 48px;
+            margin-bottom: 15px;
+        }
+
+        .upload-text {
+            font-size: 1.2rem;
+            color: #666;
+            margin-bottom: 10px;
+        }
+
+        .upload-subtext {
+            font-size: 0.9rem;
+            color: #999;
+        }
+
+        #fileInput {
+            display: none;
+        }
+
+        .btn {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 15px 40px;
+            font-size: 1.1rem;
+            border-radius: 25px;
+            cursor: pointer;
+            transition: transform 0.2s, box-shadow 0.2s;
+            margin: 10px;
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+        }
+
+        .btn:active {
+            transform: translateY(0);
+        }
+
+        .btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
+
+        .preview-container {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+            gap: 15px;
+            margin-top: 20px;
+        }
+
+        .preview-item {
+            position: relative;
+            border-radius: 10px;
+            overflow: hidden;
+            box-shadow: 0 3px 10px rgba(0,0,0,0.1);
+        }
+
+        .preview-item img {
+            width: 100%;
+            height: 200px;
+            object-fit: cover;
+        }
+
+        .remove-btn {
+            position: absolute;
+            top: 5px;
+            right: 5px;
+            background: rgba(255, 0, 0, 0.8);
+            color: white;
+            border: none;
+            border-radius: 50%;
+            width: 30px;
+            height: 30px;
+            cursor: pointer;
+            font-size: 18px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .results-container {
+            margin-top: 30px;
+            display: none;
+        }
+
+        .result-card {
+            background: white;
+            border-radius: 10px;
+            padding: 25px;
+            margin-bottom: 20px;
+            box-shadow: 0 3px 15px rgba(0,0,0,0.1);
+            border-left: 5px solid #667eea;
+        }
+
+        .result-header {
+            display: flex;
+            align-items: center;
+            margin-bottom: 20px;
+            padding-bottom: 15px;
+            border-bottom: 2px solid #f0f0f0;
+        }
+
+        .result-icon {
+            font-size: 48px;
+            margin-right: 15px;
+        }
+
+        .result-title {
+            flex: 1;
+        }
+
+        .result-title h3 {
+            font-size: 1.5rem;
+            margin-bottom: 5px;
+        }
+
+        .result-title p {
+            color: #666;
+            font-size: 0.9rem;
+        }
+
+        .prediction-badge {
+            display: inline-block;
+            padding: 10px 20px;
+            border-radius: 20px;
+            font-size: 1.2rem;
+            font-weight: bold;
+            margin: 15px 0;
+        }
+
+        .badge-benign {
+            background: #d4edda;
+            color: #155724;
+            border: 2px solid #28a745;
+        }
+
+        .badge-malignant {
+            background: #f8d7da;
+            color: #721c24;
+            border: 2px solid #dc3545;
+        }
+
+        .confidence-bar {
+            width: 100%;
+            height: 30px;
+            background: #e9ecef;
+            border-radius: 15px;
+            overflow: hidden;
+            margin: 10px 0;
+        }
+
+        .confidence-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #28a745, #20c997);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: bold;
+            transition: width 1s ease;
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin: 20px 0;
+        }
+
+        .stat-box {
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 10px;
+            text-align: center;
+        }
+
+        .stat-label {
+            font-size: 0.9rem;
+            color: #666;
+            margin-bottom: 5px;
+        }
+
+        .stat-value {
+            font-size: 1.5rem;
+            font-weight: bold;
+            color: #667eea;
+        }
+
+        .probability-bars {
+            margin: 20px 0;
+        }
+
+        .prob-item {
+            margin: 15px 0;
+        }
+
+        .prob-label {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 5px;
+            font-weight: 500;
+        }
+
+        .prob-bar {
+            width: 100%;
+            height: 25px;
+            background: #e9ecef;
+            border-radius: 12px;
+            overflow: hidden;
+        }
+
+        .prob-fill {
+            height: 100%;
+            transition: width 1s ease;
+            border-radius: 12px;
+        }
+
+        .prob-benign {
+            background: linear-gradient(90deg, #28a745, #20c997);
+        }
+
+        .prob-malignant {
+            background: linear-gradient(90deg, #dc3545, #fd7e14);
+        }
+
+        .loading {
+            text-align: center;
+            padding: 40px;
+            display: none;
+        }
+
+        .spinner {
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #667eea;
+            border-radius: 50%;
+            width: 50px;
+            height: 50px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 20px;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .alert {
+            padding: 15px;
+            border-radius: 8px;
+            margin: 20px 0;
+        }
+
+        .alert-info {
+            background: #d1ecf1;
+            color: #0c5460;
+            border: 1px solid #bee5eb;
+        }
+
+        .alert-warning {
+            background: #fff3cd;
+            color: #856404;
+            border: 1px solid #ffeaa7;
+        }
+
+        .mode-selector {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+            justify-content: center;
+        }
+
+        .mode-btn {
+            padding: 12px 30px;
+            border: 2px solid #667eea;
+            background: white;
+            color: #667eea;
+            border-radius: 25px;
+            cursor: pointer;
+            transition: all 0.3s;
+            font-size: 1rem;
+        }
+
+        .mode-btn.active {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+
+        @media (max-width: 768px) {
+            .header h1 {
+                font-size: 1.8rem;
+            }
+
+            .stats-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .preview-container {
+                grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🔬 Breast Histopathology Classification</h1>
+            <p>AI-Powered Diagnosis Assistant for Breast Cancer Detection</p>
+        </div>
+
+        <div class="card">
+            <div class="mode-selector">
+                <button class="mode-btn active" onclick="setMode('single')">Single Image</button>
+                <button class="mode-btn" onclick="setMode('batch')">Batch Images</button>
+                <button class="mode-btn" onclick="setMode('slide')">Full Slide</button>
+            </div>
+
+            <div class="alert alert-info" id="modeInfo">
+                <strong>Single Image Mode:</strong> Upload one histopathology image for classification.
+            </div>
+
+            <div class="upload-area" id="uploadArea">
+                <div class="upload-icon">📁</div>
+                <div class="upload-text">Click to upload or drag and drop</div>
+                <div class="upload-subtext">Supported formats: PNG, JPG, JPEG</div>
+                <input type="file" id="fileInput" accept="image/*" multiple>
+            </div>
+
+            <div class="preview-container" id="previewContainer"></div>
+
+            <div style="text-align: center; margin-top: 20px;">
+                <button class="btn" id="predictBtn" onclick="predict()" disabled>
+                    🔍 Analyze Image(s)
+                </button>
+                <button class="btn" onclick="clearAll()" style="background: linear-gradient(135deg, #e74c3c 0%, #c0392b 100%);">
+                    🗑️ Clear All
+                </button>
+            </div>
+        </div>
+
+        <div class="loading" id="loading">
+            <div class="spinner"></div>
+            <p>Analyzing image(s)... Please wait.</p>
+        </div>
+
+        <div class="results-container" id="resultsContainer"></div>
+    </div>
+
+    <script>
+        let selectedFiles = [];
+        let currentMode = 'single';
+
+        const uploadArea = document.getElementById('uploadArea');
+        const fileInput = document.getElementById('fileInput');
+        const previewContainer = document.getElementById('previewContainer');
+        const predictBtn = document.getElementById('predictBtn');
+        const loading = document.getElementById('loading');
+        const resultsContainer = document.getElementById('resultsContainer');
+
+        // Mode switching
+        function setMode(mode) {
+            currentMode = mode;
+            
+            document.querySelectorAll('.mode-btn').forEach(btn => {
+                btn.classList.remove('active');
+            });
+            event.target.classList.add('active');
+
+            const modeInfo = document.getElementById('modeInfo');
+            const modeTexts = {
+                'single': '<strong>Single Image Mode:</strong> Upload one histopathology image for classification.',
+                'batch': '<strong>Batch Mode:</strong> Upload multiple images for batch processing. Results will be aggregated.',
+                'slide': '<strong>Slide Mode:</strong> Upload all images from the same slide. System will perform slide-level diagnosis.'
+            };
+            modeInfo.innerHTML = modeTexts[mode];
+
+            if (mode === 'single') {
+                fileInput.removeAttribute('multiple');
+            } else {
+                fileInput.setAttribute('multiple', 'multiple');
+            }
+
+            clearAll();
+        }
+
+        // Upload area interactions
+        uploadArea.addEventListener('click', () => fileInput.click());
+
+        uploadArea.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            uploadArea.classList.add('dragover');
+        });
+
+        uploadArea.addEventListener('dragleave', () => {
+            uploadArea.classList.remove('dragover');
+        });
+
+        uploadArea.addEventListener('drop', (e) => {
+            e.preventDefault();
+            uploadArea.classList.remove('dragover');
+            handleFiles(e.dataTransfer.files);
+        });
+
+        fileInput.addEventListener('change', (e) => {
+            handleFiles(e.target.files);
+        });
+
+        function handleFiles(files) {
+            if (currentMode === 'single' && files.length > 1) {
+                alert('Single image mode: Please select only one image.');
+                return;
+            }
+
+            selectedFiles = Array.from(files);
+            updatePreview();
+            predictBtn.disabled = selectedFiles.length === 0;
+        }
+
+        function updatePreview() {
+            previewContainer.innerHTML = '';
+            
+            selectedFiles.forEach((file, index) => {
+                const reader = new FileReader();
+                reader.onload = (e) => {
+                    const div = document.createElement('div');
+                    div.className = 'preview-item';
+                    div.innerHTML = `
+                        <img src="${e.target.result}" alt="Preview">
+                        <button class="remove-btn" onclick="removeFile(${index})">×</button>
+                    `;
+                    previewContainer.appendChild(div);
+                };
+                reader.readAsDataURL(file);
+            });
+        }
+
+        function removeFile(index) {
+            selectedFiles.splice(index, 1);
+            updatePreview();
+            predictBtn.disabled = selectedFiles.length === 0;
+        }
+
+        function clearAll() {
+            selectedFiles = [];
+            fileInput.value = '';
+            previewContainer.innerHTML = '';
+            resultsContainer.innerHTML = '';
+            resultsContainer.style.display = 'none';
+            predictBtn.disabled = true;
+        }
+
+        async function predict() {
+            if (selectedFiles.length === 0) return;
+
+            loading.style.display = 'block';
+            resultsContainer.style.display = 'none';
+            predictBtn.disabled = true;
+
+            try {
+                let result;
+                
+                if (currentMode === 'single') {
+                    result = await predictSingle(selectedFiles[0]);
+                } else if (currentMode === 'batch') {
+                    result = await predictBatch(selectedFiles);
+                } else {
+                    result = await predictSlide(selectedFiles);
+                }
+
+                displayResults(result);
+            } catch (error) {
+                alert('Error: ' + error.message);
+            } finally {
+                loading.style.display = 'none';
+                predictBtn.disabled = false;
+            }
+        }
+
+        async function predictSingle(file) {
+            const formData = new FormData();
+            formData.append('file', file);
+
+            const response = await fetch('http://localhost:8000/predict', {
+                method: 'POST',
+                body: formData
+            });
+
+            if (!response.ok) {
+                throw new Error('Prediction failed');
+            }
+
+            return await response.json();
+        }
+
+        async function predictBatch(files) {
+            const formData = new FormData();
+            files.forEach(file => {
+                formData.append('files', file);
+            });
+
+            const response = await fetch('http://localhost:8000/predict/batch', {
+                method: 'POST',
+                body: formData
+            });
+
+            if (!response.ok) {
+                throw new Error('Batch prediction failed');
+            }
+
+            return await response.json();
+        }
+
+        async function predictSlide(files) {
+            const formData = new FormData();
+            files.forEach(file => {
+                formData.append('files', file);
+            });
+            formData.append('slide_id', 'slide_' + Date.now());
+
+            const response = await fetch('http://localhost:8000/predict/slide', {
+                method: 'POST',
+                body: formData
+            });
+
+            if (!response.ok) {
+                throw new Error('Slide prediction failed');
+            }
+
+            return await response.json();
+        }
+
+        function displayResults(data) {
+            resultsContainer.innerHTML = '';
+            resultsContainer.style.display = 'block';
+
+            if (currentMode === 'single') {
+                resultsContainer.innerHTML = createResultCard(data, 'Single Image Result');
+            } else if (currentMode === 'batch') {
+                const aggregated = data.aggregated_result;
+                resultsContainer.innerHTML = createResultCard(aggregated, `Aggregated Result (${data.total_images} images)`);
+                
+                // Show individual results
+                const individualDiv = document.createElement('div');
+                individualDiv.innerHTML = '<h3 style="margin: 20px 0; color: white;">Individual Image Results:</h3>';
+                data.predictions.forEach((pred, idx) => {
+                    individualDiv.innerHTML += createResultCard(pred, `Image ${idx + 1}: ${pred.filename || 'Unknown'}`);
+                });
+                resultsContainer.appendChild(individualDiv);
+            } else {
+                resultsContainer.innerHTML = createSlideResult(data);
+            }
+        }
+
+        function createResultCard(data, title) {
+            const isBenign = data.predicted_class === 'benign';
+            const badgeClass = isBenign ? 'badge-benign' : 'badge-malignant';
+            const icon = isBenign ? '✅' : '⚠️';
+            
+            const probs = data.probabilities || data.average_probabilities || data.slide_average_probabilities || {};
+
+            return `
+                <div class="result-card">
+                    <div class="result-header">
+                        <div class="result-icon">${icon}</div>
+                        <div class="result-title">
+                            <h3>${title}</h3>
+                            <p>Analysis completed</p>
+                        </div>
+                    </div>
+
+                    <div style="text-align: center;">
+                        <div class="prediction-badge ${badgeClass}">
+                            ${data.predicted_class.toUpperCase()}
+                        </div>
+                    </div>
+
+                    <div class="stats-grid">
+                        <div class="stat-box">
+                            <div class="stat-label">Confidence</div>
+                            <div class="stat-value">${(data.confidence * 100).toFixed(1)}%</div>
+                        </div>
+                        ${data.total_patches ? `
+                        <div class="stat-box">
+                            <div class="stat-label">Patches Analyzed</div>
+                            <div class="stat-value">${data.total_patches}</div>
+                        </div>
+                        ` : ''}
+                        ${data.total_images ? `
+                        <div class="stat-box">
+                            <div class="stat-label">Images Analyzed</div>
+                            <div class="stat-value">${data.total_images}</div>
+                        </div>
+                        ` : ''}
+                    </div>
+
+                    <h4 style="margin: 20px 0 10px;">Class Probabilities:</h4>
+                    <div class="probability-bars">
+                        <div class="prob-item">
+                            <div class="prob-label">
+                                <span>🟢 Benign</span>
+                                <span>${(probs.benign * 100).toFixed(2)}%</span>
+                            </div>
+                            <div class="prob-bar">
+                                <div class="prob-fill prob-benign" style="width: ${probs.benign * 100}%"></div>
+                            </div>
+                        </div>
+                        <div class="prob-item">
+                            <div class="prob-label">
+                                <span>🔴 Malignant</span>
+                                <span>${(probs.malignant * 100).toFixed(2)}%</span>
+                            </div>
+                            <div class="prob-bar">
+                                <div class="prob-fill prob-malignant" style="width: ${probs.malignant * 100}%"></div>
+                            </div>
+                        </div>
+                    </div>
+
+                    ${data.patch_distribution ? `
+                    <div class="alert alert-info" style="margin-top: 20px;">
+                        <strong>Patch Distribution:</strong><br>
+                        Benign: ${data.patch_distribution.benign_patches} patches | 
+                        Malignant: ${data.patch_distribution.malignant_patches} patches
+                    </div>
+                    ` : ''}
+                </div>
+            `;
+        }
+
+        function createSlideResult(data) {
+            const isBenign = data.predicted_class === 'benign';
+            const badgeClass = isBenign ? 'badge-benign' : 'badge-malignant';
+            const icon = isBenign ? '✅' : '⚠️';
+
+            return `
+                <div class="result-card">
+                    <div class="result-header">
+                        <div class="result-icon">${icon}</div>
+                        <div class="result-title">
+                            <h3>Slide-Level Diagnosis</h3>
+                            <p>Slide ID: ${data.slide_id || 'Unknown'}</p>
+                        </div>
+                    </div>
+
+                    <div style="text-align: center;">
+                        <div class="prediction-badge ${badgeClass}">
+                            ${data.predicted_class.toUpperCase()}
+                        </div>
+                    </div>
+
+                    <div class="stats-grid">
+                        <div class="stat-box">
+                            <div class="stat-label">Slide Confidence</div>
+                            <div class="stat-value">${(data.confidence * 100).toFixed(1)}%</div>
+                        </div>
+                        <div class="stat-box">
+                            <div class="stat-label">Total Images</div>
+                            <div class="stat-value">${data.total_images}</div>
+                        </div>
+                        <div class="stat-box">
+                            <div class="stat-label">Benign Images</div>
+                            <div class="stat-value">${data.vote_distribution.benign_images}</div>
+                        </div>
+                        <div class="stat-box">
+                            <div class="stat-label">Malignant Images</div>
+                            <div class="stat-value">${data.vote_distribution.malignant_images}</div>
+                        </div>
+                    </div>
+
+                    <h4 style="margin: 20px 0 10px;">Average Probabilities:</h4>
+                    <div class="probability-bars">
+                        <div class="prob-item">
+                            <div class="prob-label">
+                                <span>🟢 Benign</span>
+                                <span>${(data.slide_average_probabilities.benign * 100).toFixed(2)}%</span>
+                            </div>
+                            <div class="prob-bar">
+                                <div class="prob-fill prob-benign" style="width: ${data.slide_average_probabilities.benign * 100}%"></div>
+                            </div>
+                        </div>
+                        <div class="prob-item">
+                            <div class="prob-label">
+                                <span>🔴 Malignant</span>
+                                <span>${(data.slide_average_probabilities.malignant * 100).toFixed(2)}%</span>
+                            </div>
+                            <div class="prob-bar">
+                                <div class="prob-fill prob-malignant" style="width: ${data.slide_average_probabilities.malignant * 100}%"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+    </script>
+</body>
+</html>
+
+
+

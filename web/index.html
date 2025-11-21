@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Breast Histopathology AI | Diagnosis System</title>
+    
+    <!-- Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    
+    <!-- Chart.js from CDN -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+    
+    <!-- Icons from Lucide (CDN) -->
+    <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.js"></script>
+    
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="app">
+        <!-- Header -->
+        <header class="header">
+            <div class="header-content">
+                <div class="logo">
+                    <i data-lucide="microscope" style="width: 40px; height: 40px;"></i>
+                    <div>
+                        <h1>Breast Histopathology AI</h1>
+                        <p>Advanced AI-Powered Cancer Diagnosis System</p>
+                    </div>
+                </div>
+                
+                <div class="api-status" id="apiStatus">
+                    <div class="status-indicator"></div>
+                    <span id="apiStatusText">Checking...</span>
+                </div>
+            </div>
+        </header>
+
+        <!-- Main Content -->
+        <main class="main-content">
+            <div class="container">
+                <!-- API Offline Warning -->
+                <div class="alert alert-error" id="apiError" style="display: none;">
+                    <i data-lucide="alert-circle"></i>
+                    <div>
+                        <strong>API Server Not Running</strong>
+                        <p>Please start the API server: <code>python api.py</code></p>
+                    </div>
+                </div>
+
+                <!-- Mode Selector -->
+                <div class="mode-selector card">
+                    <h3>Select Analysis Mode</h3>
+                    <div class="mode-options">
+                        <button class="mode-option active" data-mode="single">
+                            <div class="mode-icon">
+                                <i data-lucide="file-image"></i>
+                            </div>
+                            <div class="mode-content">
+                                <h4>Single Image</h4>
+                                <p>Quick diagnosis for individual samples</p>
+                            </div>
+                        </button>
+
+                        <button class="mode-option" data-mode="multiple">
+                            <div class="mode-icon">
+                                <i data-lucide="folder-open"></i>
+                            </div>
+                            <div class="mode-content">
+                                <h4>Multiple Images</h4>
+                                <p>Comprehensive analysis across multiple slides</p>
+                            </div>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- File Upload Section -->
+                <div class="upload-section card">
+                    <div class="section-header">
+                        <div class="section-icon">
+                            <i data-lucide="upload"></i>
+                        </div>
+                        <div>
+                            <h2 id="uploadTitle">Upload Image</h2>
+                            <p id="uploadDesc">Upload a histopathology image for diagnosis</p>
+                        </div>
+                    </div>
+
+                    <div class="dropzone" id="dropzone">
+                        <i data-lucide="upload" style="width: 48px; height: 48px;"></i>
+                        <h3>Drop your image(s) here</h3>
+                        <p>or click to browse files</p>
+                        <span class="file-types">PNG, JPG, JPEG supported</span>
+                        <input type="file" id="fileInput" accept="image/*" style="display: none;">
+                    </div>
+
+                    <!-- File Preview -->
+                    <div class="file-preview" id="filePreview" style="display: none;">
+                        <div class="preview-header">
+                            <i data-lucide="image"></i>
+                            <span id="fileCount">0 files selected</span>
+                        </div>
+                        <div class="preview-grid" id="previewGrid"></div>
+                    </div>
+
+                    <!-- Action Buttons -->
+                    <div class="action-buttons" id="actionButtons" style="display: none;">
+                        <button class="btn btn-primary" id="analyzeBtn">
+                            <i data-lucide="activity"></i>
+                            <span id="analyzeText">Analyze Image</span>
+                        </button>
+                        <button class="btn btn-secondary" id="clearBtn">Clear All</button>
+                    </div>
+
+                    <!-- Loading -->
+                    <div class="loading" id="loading" style="display: none;">
+                        <div class="spinner"></div>
+                        <p>Analyzing image(s)... Please wait.</p>
+                    </div>
+                </div>
+
+                <!-- Results Container -->
+                <div id="resultsContainer"></div>
+            </div>
+        </main>
+
+        <!-- Footer -->
+        <footer class="footer">
+            <div class="footer-content">
+                <p>⚠️ <strong>Medical Disclaimer:</strong> This system is for research and educational purposes only.</p>
+                <p>Powered by ResNet50 • Trained on BreakHis Dataset • Built with ❤️</p>
+            </div>
+        </footer>
+    </div>
+
+    <script src="app.js"></script>
+    <script>
+        // Initialize Lucide icons
+        lucide.createIcons();
+    </script>
+</body>
+</html>
+

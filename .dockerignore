@@ -1,0 +1,79 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+env/
+venv/
+ENV/
+*.egg-info/
+dist/
+build/
+
+# Jupyter
+.ipynb_checkpoints
+*.ipynb
+Notebooks/
+Breast_Hispothalogy_updated (2).ipynb
+
+# IDEs
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Git
+.git/
+.gitignore
+.gitattributes
+
+# Documentation (not needed in container)
+*.md
+!README.md
+DEPLOYMENT_GUIDE.md
+QUICK_START.md
+LIGHTWEIGHT_APP_COMPLETE.md
+
+# Flow diagrams
+flow diagrams/
+
+# Test data (optional - comment out if needed for demo)
+test data/
+
+# Logs
+*.log
+logs/
+
+# Temporary files
+*.tmp
+*.bak
+*.swp
+
+# Frontend build artifacts (React - already deleted)
+frontend/
+node_modules/
+package-lock.json
+
+# Batch scripts (Windows only)
+*.bat
+
+# Old test scripts
+test_model.py
+test_model_fixed.py
+test_predict.py
+streamlit_app.py
+start_app.bat
+model_export.py
+supervised_learning_loading.py
+
+# Docker
+docker-compose.yml
+.dockerignore
+

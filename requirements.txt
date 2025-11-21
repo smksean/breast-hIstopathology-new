@@ -1,0 +1,26 @@
+# Breast Histopathology Classification - Dependencies
+# ====================================================
+
+# Deep Learning
+torch>=2.0.0
+torchvision>=0.15.0
+
+# Web Frameworks
+fastapi>=0.104.0
+uvicorn[standard]>=0.24.0
+
+# Image Processing
+Pillow>=10.0.0
+opencv-python>=4.8.0
+
+# Data Science
+numpy>=1.24.0
+pandas>=2.0.0
+
+# HTTP Requests
+requests>=2.31.0
+python-multipart>=0.0.6
+
+# Utilities
+python-dateutil>=2.8.2
+
