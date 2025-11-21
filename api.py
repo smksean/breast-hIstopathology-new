@@ -7,6 +7,7 @@ RESTful API that wraps the prediction system
 from fastapi import FastAPI, File, UploadFile, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
+from fastapi.staticfiles import StaticFiles
 from typing import List
 import uvicorn
 from pathlib import Path
@@ -236,10 +237,16 @@ async def predict_multiple_images(files: List[UploadFile] = File(...)):
         )
 
 
+# Mount static files (web interface) - MUST be last!
+# This serves the web UI at the root URL
+app.mount("/", StaticFiles(directory="web", html=True), name="static")
+
+
 def start_server(host: str = "127.0.0.1", port: int = 8000):
     """Start the FastAPI server"""
     print(f"\n🚀 Starting FastAPI server at http://{host}:{port}")
     print(f"📖 API documentation at http://{host}:{port}/docs\n")
+    print(f"🌐 Web Interface at http://{host}:{port}/\n")
     
     uvicorn.run(app, host=host, port=port)
 

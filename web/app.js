@@ -1,7 +1,11 @@
 // State
 let currentMode = 'single';
 let selectedFiles = [];
-const API_URL = 'https://breast-histopathology-new-production.up.railway.app';
+
+// Smart API URL detection - works both locally and on Railway
+const API_URL = window.location.origin.includes('railway.app') 
+    ? window.location.origin  // Production: Use same Railway URL
+    : 'http://localhost:8000'; // Development: Use local API
 
 // Elements
 const dropzone = document.getElementById('dropzone');
