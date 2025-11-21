@@ -57,9 +57,9 @@ async def startup_event():
         print("   API will start but predictions will fail.")
 
 
-@app.get("/")
-async def root():
-    """Root endpoint with API information"""
+@app.get("/api")
+async def api_info():
+    """API information endpoint"""
     return {
         "message": "Breast Histopathology Classification API",
         "version": "1.0.0",
@@ -68,7 +68,8 @@ async def root():
             "health": "/health",
             "predict_single": "/predict/single",
             "predict_folder": "/predict/folder",
-            "docs": "/docs"
+            "docs": "/docs",
+            "api_info": "/api"
         }
     }
 
