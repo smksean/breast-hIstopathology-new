@@ -1,7 +1,7 @@
 // State
 let currentMode = 'single';
 let selectedFiles = [];
-const API_URL = 'http://localhost:8000';
+const API_URL = 'https://breast-histopathology-new-production.up.railway.app';
 
 // Elements
 const dropzone = document.getElementById('dropzone');
