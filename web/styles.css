@@ -405,6 +405,57 @@ body {
     100% { transform: rotate(360deg); }
 }
 
+/* Progress Bar */
+.progress-bar-container {
+    width: 100%;
+    max-width: 500px;
+    margin: 1.5rem auto;
+    height: 12px;
+    background: #e2e8f0;
+    border-radius: 10px;
+    overflow: hidden;
+    box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.progress-bar-fill {
+    height: 100%;
+    background: linear-gradient(90deg, #E91E63, #C2185B);
+    border-radius: 10px;
+    width: 0%;
+    transition: width 0.3s ease;
+    position: relative;
+    overflow: hidden;
+}
+
+.progress-bar-fill::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    bottom: 0;
+    right: 0;
+    background: linear-gradient(
+        90deg,
+        transparent,
+        rgba(255, 255, 255, 0.3),
+        transparent
+    );
+    animation: shimmer 1.5s infinite;
+}
+
+@keyframes shimmer {
+    0% { transform: translateX(-100%); }
+    100% { transform: translateX(100%); }
+}
+
+.progress-text {
+    margin-top: 0.75rem;
+    font-size: 0.875rem;
+    color: #4a5568;
+    font-weight: 600;
+    text-align: center;
+}
+
 /* Alert */
 .alert {
     display: flex;

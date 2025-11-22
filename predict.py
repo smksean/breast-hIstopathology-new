@@ -135,13 +135,15 @@ class BreastHistopathologyPredictor:
         return patches, patch_coords
     
     @torch.no_grad()
-    def predict_image(self, image_path, verbose=True):
+    def predict_image(self, image_path, verbose=True, progress_callback=None):
         """
         Predict diagnosis for a single image
         
         Args:
             image_path: Path to image
             verbose: Print detailed results
+            progress_callback: Optional callback function(current, total, percentage)
+                              Called after each batch is processed
             
         Returns:
             Dictionary with prediction results
@@ -182,6 +184,11 @@ class BreastHistopathologyPredictor:
             # Extract results
             patch_predictions.extend(preds.cpu().tolist())
             patch_probabilities.extend(probs.cpu().numpy())
+            
+            # Progress callback (if provided)
+            if progress_callback:
+                progress_percentage = (batch_end / len(patches)) * 100
+                progress_callback(batch_end, len(patches), progress_percentage)
         
         # Calculate statistics
         benign_patches = sum(1 for p in patch_predictions if p == 0)

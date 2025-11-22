@@ -1,11 +1,7 @@
 // State
 let currentMode = 'single';
 let selectedFiles = [];
-
-// Smart API URL detection - works both locally and on Railway
-const API_URL = window.location.origin.includes('railway.app') 
-    ? window.location.origin  // Production: Use same Railway URL
-    : 'http://localhost:8000'; // Development: Use local API
+const API_URL = 'https://breast-histopathology-new-production.up.railway.app';
 
 // Elements
 const dropzone = document.getElementById('dropzone');
@@ -201,15 +197,60 @@ async function analyzeSingle() {
     const formData = new FormData();
     formData.append('file', selectedFiles[0]);
     
-    const response = await fetch(`${API_URL}/predict/single`, {
-        method: 'POST',
-        body: formData
-    });
+    // Show progress bar
+    const progressBar = document.getElementById('progressBar');
+    const progressFill = document.getElementById('progressFill');
+    const progressText = document.getElementById('progressText');
     
-    if (!response.ok) throw new Error('Prediction failed');
+    progressBar.style.display = 'block';
+    progressFill.style.width = '0%';
+    progressText.textContent = 'Starting analysis...';
     
-    const data = await response.json();
-    displaySingleResult(data);
+    try {
+        // Use SSE for real-time progress
+        const response = await fetch(`${API_URL}/predict/single/stream`, {
+            method: 'POST',
+            body: formData
+        });
+        
+        if (!response.ok) {
+            throw new Error('Prediction failed');
+        }
+        
+        const reader = response.body.getReader();
+        const decoder = new TextDecoder();
+        let buffer = '';
+        
+        while (true) {
+            const { done, value } = await reader.read();
+            
+            if (done) break;
+            
+            buffer += decoder.decode(value, { stream: true });
+            const lines = buffer.split('\n\n');
+            buffer = lines.pop(); // Keep incomplete line in buffer
+            
+            for (const line of lines) {
+                if (line.startsWith('data: ')) {
+                    const data = JSON.parse(line.slice(6));
+                    
+                    if (data.type === 'progress') {
+                        // Update progress bar
+                        progressFill.style.width = `${data.percentage}%`;
+                        progressText.textContent = data.message;
+                    } else if (data.type === 'complete') {
+                        // Display final result
+                        progressBar.style.display = 'none';
+                        displaySingleResult(data.result);
+                    } else if (data.type === 'error') {
+                        throw new Error(data.message);
+                    }
+                }
+            }
+        }
+    } finally {
+        progressBar.style.display = 'none';
+    }
 }
 
 async function analyzeMultiple() {

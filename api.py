@@ -6,7 +6,7 @@ RESTful API that wraps the prediction system
 
 from fastapi import FastAPI, File, UploadFile, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import JSONResponse
+from fastapi.responses import JSONResponse, StreamingResponse
 from fastapi.staticfiles import StaticFiles
 from typing import List
 import uvicorn
@@ -15,6 +15,8 @@ import tempfile
 import shutil
 from PIL import Image
 import io
+import json
+import asyncio
 
 # Import our predictor
 from predict import BreastHistopathologyPredictor
@@ -153,6 +155,121 @@ async def predict_single_image(file: UploadFile = File(...)):
             status_code=500,
             detail=f"Prediction error: {str(e)}"
         )
+
+
+@app.post("/predict/single/stream")
+async def predict_single_image_stream(file: UploadFile = File(...)):
+    """
+    Predict diagnosis for a single image with real-time progress updates (SSE)
+    
+    Args:
+        file: Image file (PNG, JPG, etc.)
+        
+    Returns:
+        Server-Sent Events stream with progress updates and final result
+    """
+    if predictor is None:
+        raise HTTPException(status_code=503, detail="Model not loaded")
+    
+    if not file.content_type or not file.content_type.startswith('image/'):
+        raise HTTPException(status_code=400, detail="Invalid file type")
+    
+    async def progress_generator():
+        """Generate SSE progress updates"""
+        tmp_path = None
+        try:
+            # Save uploaded file
+            with tempfile.NamedTemporaryFile(delete=False, suffix='.png') as tmp_file:
+                contents = await file.read()
+                tmp_file.write(contents)
+                tmp_path = tmp_file.name
+            
+            # Progress tracking with queue
+            progress_queue = []
+            
+            def progress_callback(current, total, percentage):
+                """Called by predictor during inference"""
+                progress_queue.append({
+                    'type': 'progress',
+                    'current': current,
+                    'total': total,
+                    'percentage': round(percentage, 1),
+                    'message': f'Processing patch {current}/{total}...'
+                })
+            
+            # Send initial status
+            yield f"data: {json.dumps({'type': 'start', 'message': 'Starting analysis...'})}\n\n"
+            
+            # Run prediction in thread to allow async progress updates
+            import threading
+            result_holder = {'result': None, 'error': None}
+            
+            def run_prediction():
+                try:
+                    result_holder['result'] = predictor.predict_image(
+                        tmp_path, 
+                        verbose=False, 
+                        progress_callback=progress_callback
+                    )
+                except Exception as e:
+                    result_holder['error'] = str(e)
+            
+            thread = threading.Thread(target=run_prediction)
+            thread.start()
+            
+            # Stream progress updates as they arrive
+            last_sent = 0
+            while thread.is_alive() or len(progress_queue) > last_sent:
+                while last_sent < len(progress_queue):
+                    yield f"data: {json.dumps(progress_queue[last_sent])}\n\n"
+                    last_sent += 1
+                await asyncio.sleep(0.05)  # Small delay to allow batching
+            
+            thread.join()
+            
+            # Check for errors
+            if result_holder['error']:
+                raise Exception(result_holder['error'])
+            
+            result = result_holder['result']
+            
+            # Send final result
+            final_data = {
+                'type': 'complete',
+                'result': {
+                    'filename': file.filename,
+                    'prediction': result['prediction_label'],
+                    'confidence': float(result['confidence']),
+                    'probabilities': {
+                        'benign': float(result['avg_prob_benign']),
+                        'malignant': float(result['avg_prob_malignant'])
+                    },
+                    'num_patches': int(result['num_patches']),
+                    'patch_breakdown': {
+                        'benign_patches': int(result['benign_patches']),
+                        'malignant_patches': int(result['malignant_patches'])
+                    }
+                }
+            }
+            yield f"data: {json.dumps(final_data)}\n\n"
+            
+        except Exception as e:
+            error_data = {'type': 'error', 'message': str(e)}
+            yield f"data: {json.dumps(error_data)}\n\n"
+        
+        finally:
+            # Cleanup
+            if tmp_path and Path(tmp_path).exists():
+                Path(tmp_path).unlink()
+    
+    return StreamingResponse(
+        progress_generator(),
+        media_type="text/event-stream",
+        headers={
+            "Cache-Control": "no-cache",
+            "Connection": "keep-alive",
+        }
+    )
 
 
 @app.post("/predict/folder")
