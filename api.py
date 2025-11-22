@@ -7,6 +7,7 @@ RESTful API that wraps the prediction system
 from fastapi import FastAPI, File, UploadFile, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
+from fastapi.staticfiles import StaticFiles
 from typing import List
 import uvicorn
 from pathlib import Path
@@ -63,9 +64,9 @@ async def startup_event():
         print("   API will start but predictions will fail.")
 
 
-@app.get("/")
+@app.get("/api")
 async def root():
-    """Root endpoint with API information"""
+    """API information endpoint"""
     return {
         "message": "Breast Histopathology Classification API",
         "version": "1.0.0",
@@ -246,11 +247,16 @@ async def predict_multiple_images(files: List[UploadFile] = File(...)):
 def start_server(host: str = "127.0.0.1", port: int = 8000):
     """Start the FastAPI server"""
     print(f"\n🚀 Starting FastAPI server at http://{host}:{port}")
-    print(f"📖 API documentation at http://{host}:{port}/docs\n")
+    print(f"📖 API documentation at http://{host}:{port}/docs")
+    print(f"🌐 Web interface at http://{host}:{port}\n")
     
     uvicorn.run(app, host=host, port=port)
 
 
 if __name__ == "__main__":
     start_server()
+
+
+# Serve static files (web UI) - MUST be last to avoid overriding API routes
+app.mount("/", StaticFiles(directory="web", html=True), name="static")
 
