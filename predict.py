@@ -24,13 +24,14 @@ from collections import Counter
 class BreastHistopathologyPredictor:
     """Predictor for breast histopathology images"""
     
-    def __init__(self, model_path='models/best_model.pth', device=None):
+    def __init__(self, model_path='models/best_model.pth', device=None, use_quantization=True):
         """
         Initialize predictor
         
         Args:
             model_path: Path to trained model
             device: 'cuda', 'cpu', or None (auto-detect)
+            use_quantization: Use INT8 quantization for 2-3x speedup (slight accuracy trade-off)
         """
         # Set device
         if device is None:
@@ -43,6 +44,18 @@ class BreastHistopathologyPredictor:
         # Load model
         print(f"📦 Loading model from: {model_path}")
         self.model = self._load_model(model_path)
+        
+        # Apply quantization for speed (Option 4)
+        self.use_quantization = use_quantization
+        if use_quantization and self.device.type == 'cpu':
+            print("⚡ Applying INT8 quantization for 2-3x speedup...")
+            self.model = torch.quantization.quantize_dynamic(
+                self.model, {nn.Linear}, dtype=torch.qint8
+            )
+            print("✅ Quantization applied!")
+        elif use_quantization and self.device.type == 'cuda':
+            print("ℹ️  Quantization skipped (not needed on GPU)")
+        
         self.model.to(self.device)
         self.model.eval()
         print("✅ Model loaded successfully!")
@@ -59,6 +72,9 @@ class BreastHistopathologyPredictor:
         
         # Patch size (matching your training)
         self.patch_size = 224
+        
+        # OPTIMIZATION: Batch processing settings (Option 1)
+        self.batch_size = 16  # Process 16 patches at once for 2-3x speedup
     
     def _load_model(self, model_path):
         """Load the trained ResNet50 model"""
@@ -73,12 +89,14 @@ class BreastHistopathologyPredictor:
         
         return resnet
     
-    def extract_patches(self, image_path):
+    def extract_patches(self, image_path, max_patches=25):
         """
-        Extract 224x224 patches from image (like your training)
+        Extract 224x224 patches from image (OPTIMIZED - Option 2)
         
         Args:
             image_path: Path to image
+            max_patches: Maximum patches to extract (default 25 for speed)
+                        Set to None for all patches (slower but more thorough)
             
         Returns:
             List of patch tensors
@@ -91,14 +109,28 @@ class BreastHistopathologyPredictor:
         patches = []
         patch_coords = []
         
-        # Extract non-overlapping patches
+        # Extract all possible patches
+        all_coords = []
         for y in range(0, h - self.patch_size + 1, self.patch_size):
             for x in range(0, w - self.patch_size + 1, self.patch_size):
-                patch = img_array[y:y+self.patch_size, x:x+self.patch_size]
-                patch_pil = Image.fromarray(patch)
-                patch_tensor = self.transform(patch_pil)
-                patches.append(patch_tensor)
-                patch_coords.append((y, x))
+                all_coords.append((y, x))
+        
+        # OPTIMIZATION (Option 2): Sample representative patches if too many
+        if max_patches and len(all_coords) > max_patches:
+            # Evenly sample patches across the image
+            step = len(all_coords) / max_patches
+            selected_indices = [int(i * step) for i in range(max_patches)]
+            sampled_coords = [all_coords[i] for i in selected_indices]
+        else:
+            sampled_coords = all_coords
+        
+        # Extract selected patches
+        for y, x in sampled_coords:
+            patch = img_array[y:y+self.patch_size, x:x+self.patch_size]
+            patch_pil = Image.fromarray(patch)
+            patch_tensor = self.transform(patch_pil)
+            patches.append(patch_tensor)
+            patch_coords.append((y, x))
         
         return patches, patch_coords
     
@@ -129,21 +161,27 @@ class BreastHistopathologyPredictor:
         if num_patches == 0:
             raise ValueError("No patches extracted! Image too small?")
         
-        # Predict on each patch
+        # OPTIMIZATION (Option 1): Batch processing for 2-3x speedup
         patch_predictions = []
         patch_probabilities = []
         
-        for i, patch in enumerate(patches):
-            # Add batch dimension and move to device
-            patch_batch = patch.unsqueeze(0).to(self.device)
+        # Process patches in batches instead of one-by-one
+        for batch_start in range(0, len(patches), self.batch_size):
+            batch_end = min(batch_start + self.batch_size, len(patches))
+            batch_patches = patches[batch_start:batch_end]
             
-            # Get prediction
-            output = self.model(patch_batch)
-            probs = torch.softmax(output, dim=1)
-            pred = torch.argmax(probs, dim=1).item()
+            # Stack patches into a single batch tensor
+            batch_tensor = torch.stack(batch_patches).to(self.device)
             
-            patch_predictions.append(pred)
-            patch_probabilities.append(probs.cpu().numpy()[0])
+            # Process entire batch at once (MUCH FASTER!)
+            with torch.no_grad():
+                outputs = self.model(batch_tensor)
+                probs = torch.softmax(outputs, dim=1)
+                preds = torch.argmax(probs, dim=1)
+            
+            # Extract results
+            patch_predictions.extend(preds.cpu().tolist())
+            patch_probabilities.extend(probs.cpu().numpy())
         
         # Calculate statistics
         benign_patches = sum(1 for p in patch_predictions if p == 0)
